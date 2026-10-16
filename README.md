@@ -4,6 +4,10 @@
 
 Code for the blog post [Why Training Loss Sawtooths Across Epochs](https://liqq010.github.io/posts/epochal-sawtooth/).
 
+![Training loss and the mean gap since last training, epochs 30 to 34](figs/teaser.png)
+
+*Top: training loss of a small GPT with per-epoch shuffling. Bottom: the mean gap Δ of the same batches, measured and predicted (K/2 + q).*
+
 When a model is trained for many epochs with per-epoch shuffling, the training loss often creeps up within each epoch and drops at every epoch boundary (the *Epochal Sawtooth Phenomenon*, [Liu & Ma, 2025](https://arxiv.org/abs/2410.10056)). The post explains it with one quantity: the gap $\Delta$ since a sample was last trained on. Under shuffling, $\mathbb{E}[\Delta \mid q] \approx K/2 + q$ at step $q$ of an epoch with $K$ steps, so if a sample's loss grows with $\Delta$, the logged loss follows a sawtooth. The same argument predicts the effect of every sampling scheme, which this repo tests on a small GPT.
 
 ![Training loss under four sampling schemes](figs/ablation.png)

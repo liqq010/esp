@@ -50,6 +50,20 @@ ax[1].plot(t[m], s[m], color=C["shuffle"]); ax[1].set_xticks(range(E0, E1 + 1))
 ax[1].set_xlabel("epoch"); ax[1].set_title(f"zoom: epochs {E0}–{E1}")
 save(fig, "sawtooth.png")
 
+# README teaser: the loss sawtooth and the expected-gap sawtooth, aligned
+d = load("shuffle"); K = int(d["K"]); t, s = smooth(d["batch_loss"], K)
+_, gm = smooth(d["gap"].mean(1).astype(float), K)
+m = (t >= E0) & (t <= E1)
+fig, ax = plt.subplots(2, 1, figsize=(8, 4.6), sharex=True, gridspec_kw={"hspace": 0.15})
+ax[0].plot(t[m], s[m], color=C["shuffle"], lw=1.4); ax[0].set_ylabel("training loss")
+ax[1].plot(t[m], gm[m], color=C["noshuffle"], lw=1.4)
+tt = np.arange(E0 * K, E1 * K + 1) / K
+ax[1].plot(tt, (K + 1) / 2 + (np.arange(E0 * K, E1 * K + 1) % K), color=INK, lw=1, ls="--")
+ax[1].set_ylabel("mean gap Δ (steps)"); ax[1].set_xlabel("epoch"); ax[1].set_xticks(range(E0, E1 + 1))
+ax[1].text(E0 + 1.27, 82, "measured", color=C["noshuffle"], fontsize=8.5)
+ax[1].text(E0 + 1.27, 68, "dashed: K/2 + q", color=INK, fontsize=8.5)
+save(fig, "teaser.png")
+
 # 2. theory: gap vs step
 K = 128; q = np.arange(3 * K); qe = q % K
 fig, ax = plt.subplots(1, 4, figsize=(13, 3.2), sharey=True)
