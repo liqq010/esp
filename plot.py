@@ -1,6 +1,6 @@
 """Make every figure of the blog post from the runs produced by run_all.sh."""
 import argparse, os
-import numpy as np, matplotlib
+import numpy as np, matplotlib, matplotlib.transforms
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -50,21 +50,36 @@ ax[1].plot(t[m], s[m], color=C["shuffle"]); ax[1].set_xticks(range(E0, E1 + 1))
 ax[1].set_xlabel("epoch"); ax[1].set_title(f"zoom: epochs {E0}–{E1}")
 save(fig, "sawtooth.png")
 
-# README teaser: the loss sawtooth and the expected-gap sawtooth, aligned
+# README teaser: full loss curve with an inset zooming into epochs Z0-Z1, plus the mean gap there
+from matplotlib.patches import ConnectionPatch, Rectangle, FancyBboxPatch
+Z0, Z1 = 20, 24  # zoom window (epochs)
 d = load("shuffle"); K = int(d["K"]); t, s = smooth(d["batch_loss"], K)
 _, gm = smooth(d["gap"].mean(1).astype(float), K)
-m = (t >= E0) & (t <= E1)
-fig, ax = plt.subplots(2, 1, figsize=(9, 3.2), sharex=True, gridspec_kw={"hspace": 0.08})
-ax[0].plot(t[m], s[m], color=C["shuffle"], lw=1.4); ax[0].set_ylabel("training loss")
-ax[1].plot(t[m], gm[m], color=C["noshuffle"], lw=1.4)
-tt = np.arange(E0 * K, E1 * K + 1) / K
-ax[1].plot(tt, (K + 1) / 2 + (np.arange(E0 * K, E1 * K + 1) % K), color=INK, lw=1, ls="--")
-ax[1].set_ylabel("mean gap Δ"); ax[1].set_xlabel("epoch", labelpad=1); ax[1].set_xticks(range(E0, E1 + 1))
-ax[1].tick_params(axis="x", pad=2)
-for a_ in ax:
-    a_.set_xlim(E0, E1); a_.margins(y=0.06); a_.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(3))
-ax[1].text(E0 + 1.27, 82, "measured", color=C["noshuffle"], fontsize=8.5)
-ax[1].text(E0 + 1.27, 68, "dashed: K/2 + q", color=INK, fontsize=8.5)
+m = (t >= Z0) & (t <= Z1)
+fig, ax = plt.subplots(figsize=(8, 4.4))
+ax.plot(t, s, color=C["shuffle"], lw=0.9); ax.set_xlim(0, 40); ax.set_ylim(0, 2.0)
+ax.set_xlabel("epoch", labelpad=1); ax.set_ylabel("training loss")
+lo, hi = s[m].min() - 0.03, s[m].max() + 0.03
+ax.add_patch(Rectangle((Z0, lo), Z1 - Z0, hi - lo, fill=False, ec=MUTED, lw=0.9))
+# inset: zoomed loss (top) and mean gap (bottom), framed together
+BOX = (0.45, 0.40, 0.54, 0.58)  # frame in axes coords: x, y, w, h
+ax.add_patch(FancyBboxPatch(BOX[:2], BOX[2], BOX[3], boxstyle="round,pad=0,rounding_size=0.01",
+                            transform=ax.transAxes, fc="white", ec=MUTED, lw=0.9, zorder=3))
+a1 = ax.inset_axes([0.535, 0.705, 0.44, 0.21]); a2 = ax.inset_axes([0.535, 0.475, 0.44, 0.17], sharex=a1)
+for a_ in (a1, a2):
+    a_.set_zorder(4); a_.set_xlim(Z0, Z1); a_.margins(y=0.08); a_.tick_params(labelsize=8.5)
+    a_.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(3))
+a1.plot(t[m], s[m], color=C["shuffle"], lw=1.2); a1.tick_params(labelbottom=False)
+a1.set_ylabel("loss", fontsize=9)
+a2.plot(t[m], gm[m], color=C["noshuffle"], lw=1.2)
+qq = np.arange(Z0 * K, Z1 * K + 1)
+a2.plot(qq / K, (K + 1) / 2 + qq % K, color=INK, lw=0.9, ls="--")
+a2.set_xticks(range(Z0, Z1 + 1)); a2.set_ylabel("gap Δ", fontsize=9)
+a1.set_title(f"Zoom: epochs {Z0}–{Z1}", fontsize=9, loc="left")
+a2.set_title("orange: measured, dashed: K/2 + q", fontsize=7.5, loc="right", color=MUTED, pad=3)
+for xd, xa in ((Z0, BOX[0]), (Z1, BOX[0] + BOX[2])):  # rectangle top corners -> frame bottom corners
+    fig.add_artist(ConnectionPatch(xyA=(xd, hi), coordsA=ax.transData, xyB=(xa, BOX[1]), coordsB=ax.transAxes,
+                                   color=MUTED, lw=0.8, ls=":"))
 fig.savefig(f"{OUT}/teaser.png", pad_inches=0.02); plt.close(fig)
 
 # 2. theory: gap vs step
