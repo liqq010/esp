@@ -16,7 +16,7 @@ When a model is trained for many epochs with per-epoch shuffling, the training l
 |---|---|---|
 | Shuffle every epoch | uniform on $[q+1, q+K]$ | **+32%** |
 | No shuffle | $K$ | −6% |
-| With replacement | geometric, mean $K$ | −4% |
+| With replacement | geometric, mean $\approx K$ | −4% |
 | Reverse every epoch | $1 + 2q$ | **+64%** |
 
 ## Reproduce

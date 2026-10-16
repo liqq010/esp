@@ -149,7 +149,8 @@ save(fig, "fixed_subset.png")
 
 # 6. capacity
 def rise(bl, K):
-    x = bl.reshape(-1, K); return (x[:, -K // 10:].mean(1) / x[:, :K // 10].mean(1) - 1) * 100
+    x = bl.reshape(-1, K); n = max(1, K // 10)
+    return (x[:, -n:].mean(1) / x[:, :n].mean(1) - 1) * 100
 
 
 fig, ax = plt.subplots(figsize=(7, 3.4))

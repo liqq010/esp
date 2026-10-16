@@ -10,7 +10,13 @@ E0, E1 = 25, 35  # epochs averaged over
 
 
 def rise(x, K):  # last 10% of each epoch vs first 10%, in percent
-    return (x[:, -K // 10:].mean() / x[:, :K // 10].mean() - 1) * 100
+    n = max(1, K // 10)
+    return (x[:, -n:].mean() / x[:, :n].mean() - 1) * 100
+
+
+def abs_rise(x, K):  # same, as an absolute change in loss
+    n = max(1, K // 10)
+    return x[:, -n:].mean() - x[:, :n].mean()
 
 
 print(f"Loss change within an epoch (epochs {E0}-{E1 - 1}, last 10% vs first 10% of steps)")
@@ -29,13 +35,22 @@ for s in range(3):
     r.append((l[m & (qf > .9)].mean() / l[m & (qf < .1)].mean() - 1) * 100)
 print(f"  {np.mean(r):+6.1f}%   seeds: " + " ".join(f"{x:+.1f}%" for x in r))
 
-print("\nShuffle, loss change within epoch 15, by width")
+print("\nShuffle, loss change within epoch 15, by width (relative and absolute)")
 for w in [128, 256, 512]:
-    r = []
+    r, a = [], []
     for s in range(3):
-        d = np.load(R.format("shuffle", w, s)); K = int(d["K"])
-        r.append(rise(d["batch_loss"].reshape(-1, K)[14:15], K))
-    print(f"  width {w:3d} {np.mean(r):+6.1f}%")
+        d = np.load(R.format("shuffle", w, s)); K = int(d["K"]); x = d["batch_loss"].reshape(-1, K)[14:15]
+        r.append(rise(x, K)); a.append(abs_rise(x, K))
+    print(f"  width {w:3d} {np.mean(r):+6.1f}%  {np.mean(a):+.3f}")
+print("  absolute rise at matched training loss (epochs whose mean loss is in 0.55-0.75):")
+row = []
+for w in [128, 256, 512]:
+    a = []
+    for s in range(3):
+        d = np.load(R.format("shuffle", w, s)); K = int(d["K"]); x = d["batch_loss"].reshape(-1, K); m = x.mean(1)
+        a += [abs_rise(x[e:e + 1], K) for e in range(len(x)) if 0.55 <= m[e] <= 0.75]
+    row.append(f"width {w}: {np.mean(a):+.3f}")
+print("    " + ", ".join(row))
 
 print("\nShuffle, loss change within an epoch by batch size")
 def bs_run(b, s):
